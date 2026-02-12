@@ -1,4 +1,5 @@
 import { Command } from 'commander';
+import { createRequire } from 'node:module';
 import { registerProvider } from './providers/provider.interface.js';
 import { vercelProvider } from './providers/vercel.js';
 import { addCommand } from './commands/add.js';
@@ -10,6 +11,9 @@ import { execCommand } from './commands/exec.js';
 import { currentCommand } from './commands/current.js';
 import { handleError } from './utils/errorHandler.js';
 
+const require = createRequire(import.meta.url);
+const pkg = require('../package.json') as { version: string };
+
 // Register providers
 registerProvider(vercelProvider);
 
@@ -18,7 +22,7 @@ const program = new Command();
 program
     .name('orbit')
     .description('🌍 A fully CLI-based multi-cloud profile manager')
-    .version('1.0.0')
+    .version(pkg.version)
     .enablePositionalOptions();
 
 program.addCommand(addCommand);

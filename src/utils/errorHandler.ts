@@ -3,7 +3,7 @@ import { ZodError } from 'zod';
 
 export const handleError = (error: unknown): never => {
     if (error instanceof ZodError) {
-        const messages = error.errors.map((e) => e.message).join(', ');
+        const messages = error.issues.map((e: { message: string }) => e.message).join(', ');
         logger.error(`Validation error: ${messages}`);
         process.exit(1);
     }

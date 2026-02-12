@@ -1,10 +1,10 @@
 {
   "name": "@appuo/orbit",
-  "version": "1.0.0",
+  "version": "1.0.3",
   "description": "A fully CLI-based multi-cloud profile manager",
   "type": "module",
   "bin": {
-    "orbit": "./dist/index.js"
+    "orbit": "dist/index.js"
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -36,7 +36,6 @@
     "chalk": "^5.6.2",
     "commander": "^14.0.3",
     "execa": "^9.6.1",
-    "keytar": "^7.9.0",
     "ora": "^9.3.0",
     "zod": "^4.3.6"
   },
