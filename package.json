@@ -1,0 +1,48 @@
+{
+  "name": "@appuo/orbit",
+  "version": "1.0.0",
+  "description": "A fully CLI-based multi-cloud profile manager",
+  "type": "module",
+  "bin": {
+    "orbit": "./dist/index.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts",
+    "dev": "tsup src/index.ts --format esm --dts --watch",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "pnpm build"
+  },
+  "keywords": [
+    "cli",
+    "cloud",
+    "profile",
+    "manager",
+    "vercel",
+    "multi-cloud",
+    "credentials",
+    "orbit"
+  ],
+  "author": "Appuo",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "chalk": "^5.6.2",
+    "commander": "^14.0.3",
+    "execa": "^9.6.1",
+    "keytar": "^7.9.0",
+    "ora": "^9.3.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "^25.2.3",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3"
+  }
+}
