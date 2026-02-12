@@ -1,7 +1,7 @@
 {
   "name": "@appuo/orbit",
-  "version": "1.0.3",
-  "description": "A fully CLI-based multi-cloud profile manager",
+  "version": "1.0.5",
+  "description": "Switch Vercel identities instantly. Multi-account profile manager for Vercel CLI. No logout required.",
   "type": "module",
   "bin": {
     "orbit": "dist/index.js"
@@ -18,13 +18,17 @@
     "prepublishOnly": "pnpm build"
   },
   "keywords": [
-    "cli",
-    "cloud",
-    "profile",
-    "manager",
     "vercel",
+    "vercel-switch-account",
+    "vercel-multiple-accounts",
+    "vercel-login",
+    "vercel-profile-manager",
+    "cloud-profiles",
     "multi-cloud",
+    "cli",
     "credentials",
+    "devtools",
+    "aws-profiles",
     "orbit"
   ],
   "author": "Appuo",

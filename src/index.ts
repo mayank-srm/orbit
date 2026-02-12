@@ -21,7 +21,7 @@ const program = new Command();
 
 program
     .name('orbit')
-    .description('🌍 A fully CLI-based multi-cloud profile manager')
+    .description('🌍 Switch Vercel identities instantly. No logout required.')
     .version(pkg.version)
     .enablePositionalOptions();
 
