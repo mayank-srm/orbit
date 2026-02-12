@@ -21,7 +21,7 @@ const program = new Command();
 
 program
     .name('orbit')
-    .description('🌍 Switch Vercel identities instantly. No logout required.')
+    .description('Switch Vercel identities instantly. No logout required.')
     .version(pkg.version)
     .enablePositionalOptions();
 

@@ -1,4 +1,4 @@
-# 🌍 Orbit
+![Orbit](./assets/orbit-header.gif)
 
 **Switch Vercel identities instantly.**
 
