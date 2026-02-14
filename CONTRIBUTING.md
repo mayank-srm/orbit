@@ -32,6 +32,8 @@ Thank you for your interest in contributing to Orbit! 🌍
 pnpm build       # Build the project
 pnpm dev         # Build with watch mode
 pnpm typecheck   # Run TypeScript type checking
+pnpm test        # Build + run integration/unit tests
+pnpm release:check   # Release readiness checks
 ```
 
 ### Code Standards
@@ -41,6 +43,16 @@ pnpm typecheck   # Run TypeScript type checking
 - **No `console.log`** — Use the `logger` utility from `src/utils/logger.ts`
 - **Cross-platform** — Use `os.homedir()`, `path.join()`, and `execa`
 - **Zod validation** — All external input must be validated
+- **Fail-safe auth** — Never run native provider CLI when auth identity cannot be verified
+
+### Test Requirements
+
+- Any change in command behavior must include or update integration tests in `tests/*.test.mjs`
+- Any change in storage/security behavior must include or update unit coverage
+- Pull requests must pass:
+  - `pnpm typecheck`
+  - `pnpm test`
+  - `pnpm release:check`
 
 ### Adding a New Provider
 
@@ -64,8 +76,9 @@ export const awsProvider: Provider = {
 1. Create a feature branch from `main`
 2. Make your changes
 3. Ensure `pnpm typecheck` passes
-4. Ensure `pnpm build` succeeds
-5. Write a clear PR description
+4. Ensure `pnpm test` passes
+5. Ensure `pnpm release:check` succeeds
+6. Write a clear PR description
 
 ## Reporting Issues
 

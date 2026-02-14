@@ -16,6 +16,13 @@
     "build": "tsup src/index.ts --format esm --dts",
     "dev": "tsup src/index.ts --format esm --dts --watch",
     "typecheck": "tsc --noEmit",
+    "build:test": "tsc -p tsconfig.test.json",
+    "test:run": "node --test --test-concurrency=1 tests/*.test.mjs",
+    "test": "pnpm build && pnpm build:test && pnpm test:run",
+    "test:coverage": "node --test --experimental-test-coverage --test-concurrency=1 tests/*.test.mjs",
+    "verify:release": "node scripts/check-release.mjs",
+    "smoke:package": "node scripts/smoke-package.mjs",
+    "release:check": "pnpm typecheck && pnpm test && pnpm verify:release && pnpm smoke:package && npm --cache ./.npm-cache pack --dry-run",
     "prepublishOnly": "pnpm build"
   },
   "keywords": [

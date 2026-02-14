@@ -11,6 +11,27 @@ export const currentCommand = new Command('current')
             const config = loadConfig();
             const providers = Object.keys(config.providers);
 
+            if (logger.isJsonMode()) {
+                const current = providers
+                    .map((providerName) => {
+                        const providerConfig = config.providers[providerName];
+                        if (!providerConfig?.current) {
+                            return null;
+                        }
+                        return {
+                            provider: providerName,
+                            profile: providerConfig.current,
+                        };
+                    })
+                    .filter((entry): entry is { provider: string; profile: string } => entry !== null);
+
+                logger.json({
+                    ok: true,
+                    current,
+                });
+                return;
+            }
+
             if (providers.length === 0) {
                 logger.info('No profiles configured yet.');
                 return;

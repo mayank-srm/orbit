@@ -6,6 +6,7 @@ import { profileExists, getCurrentProfile } from '../storage/configStore.js';
 import { validateProviderName, validateProfileName } from '../utils/validator.js';
 import { logger } from '../utils/logger.js';
 import { handleError } from '../utils/errorHandler.js';
+import { fail } from '../utils/cliError.js';
 
 export const runCommand = new Command('run')
     .description('Run a command with a specific provider profile')
@@ -21,8 +22,7 @@ export const runCommand = new Command('run')
             const provider = getProvider(validProvider);
 
             if (!profileExists(validProvider, validProfile)) {
-                logger.error(`Profile "${validProfile}" does not exist for provider "${provider.name}".`);
-                process.exit(1);
+                fail(`Profile "${validProfile}" does not exist for provider "${provider.name}".`);
             }
 
             logger.info(`Running as ${provider.name}/${validProfile}...`);
@@ -43,6 +43,11 @@ export const runCommand = new Command('run')
 
                 // Restore target profile's auth
                 swapped = await provider.restoreAuth(validProfile);
+                if (!swapped) {
+                    logger.warn(
+                        `No local auth snapshot found for ${provider.name}/${validProfile}. Using token fallback.`,
+                    );
+                }
             }
 
             try {
@@ -58,9 +63,12 @@ export const runCommand = new Command('run')
                     // Fallback: inject VERCEL_TOKEN (for providers without auth swap)
                     const token = await getToken(validProvider, validProfile);
                     if (!token) {
-                        logger.error(`No token found for ${provider.name}/${validProfile}. Try adding it again with "orbit add".`);
-                        process.exit(1);
+                        fail(
+                            `No token found for ${provider.name}/${validProfile}. Try adding it again with "orbit add".`,
+                        );
+                        return;
                     }
+                    const envToken = token;
 
                     const cliName = provider.getCliName();
                     const envVar = provider.getEnvVar();
@@ -68,7 +76,7 @@ export const runCommand = new Command('run')
                     const result = await execa(cliName, args, {
                         env: {
                             ...process.env,
-                            [envVar]: token,
+                            [envVar]: envToken,
                         },
                         stdio: 'inherit',
                         reject: false,
@@ -85,8 +93,6 @@ export const runCommand = new Command('run')
                     }
                 }
             }
-
-            process.exit(process.exitCode ?? 0);
         } catch (error: unknown) {
             handleError(error);
         }

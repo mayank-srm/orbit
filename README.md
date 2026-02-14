@@ -86,7 +86,17 @@ No `vercel logout`. No `vercel login`. Just switch and go.
 | `orbit exec vercel <cmd>` | Run with active profile |
 | `orbit run vercel <profile> <cmd>` | Run with specific profile |
 | `orbit current` | Show active profile |
+| `orbit rotate-key` | Rotate local encryption key |
 | `orbit remove vercel <profile>` | Remove a profile |
+
+---
+
+## 🧰 Global Flags
+
+| Flag | Description |
+|------|-------------|
+| `--json` | Machine-readable output for automation |
+| `--debug` | Redacted debug stack traces |
 
 ---
 
@@ -116,10 +126,23 @@ No environment variable injection. No wrappers. The Vercel CLI reads its own aut
 ## 🔐 Security
 
 - Tokens encrypted with **AES-256-GCM** at rest
+- Credentials key and token store enforced at `chmod 600`
 - Auth snapshots stored with `chmod 600`
+- Config and auth directories enforced at `chmod 700`
+- Corrupt config/credential files are quarantined before reset
 - No secrets in config files
 - No shell modifications (`.bashrc`, `.zshrc`)
 - Zero native dependencies
+
+---
+
+## 🧯 Failure Modes & Recovery
+
+- Missing auth snapshot during `orbit use`: command fails safely and does not change current profile.
+- Missing auth snapshot during `orbit exec`/`orbit run`: Orbit falls back to token-scoped env execution.
+- Corrupt `config.json` or `credentials.json`: file is moved to `*.corrupt-<timestamp>` and re-initialized.
+
+See the full runbook in [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
 
 ---
 
@@ -166,6 +189,11 @@ orbit --version
 ## 🤝 Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## 📚 Additional Docs
+
+- [Migration Guide](docs/MIGRATION.md)
+- [Troubleshooting](docs/TROUBLESHOOTING.md)
 
 ## 📄 License
 

@@ -6,6 +6,7 @@ import { getCurrentProfile } from '../storage/configStore.js';
 import { validateProviderName } from '../utils/validator.js';
 import { logger } from '../utils/logger.js';
 import { handleError } from '../utils/errorHandler.js';
+import { fail } from '../utils/cliError.js';
 
 export const execCommand = new Command('exec')
     .description('Execute a command using the current active profile')
@@ -21,52 +22,59 @@ export const execCommand = new Command('exec')
             const currentProfile = getCurrentProfile(validProvider);
 
             if (!currentProfile) {
-                logger.error(
-                    `No active profile set for ${provider.name}. Use "orbit use ${validProvider} <profile>" first.`,
-                );
-                process.exit(1);
+                fail(`No active profile set for ${provider.name}. Use "orbit use ${validProvider} <profile>" first.`);
+                return;
             }
-
-            // Ensure current profile's auth is active
-            if (provider.restoreAuth) {
-                await provider.restoreAuth(currentProfile);
-            }
+            const activeProfile = currentProfile;
 
             const cliName = provider.getCliName();
 
-            logger.info(`Running as ${provider.name}/${currentProfile}...`);
+            logger.info(`Running as ${provider.name}/${activeProfile}...`);
 
-            // Try native execution first (auth.json is already swapped)
-            if (provider.getAuthConfigPath?.()) {
+            let swapped = false;
+            if (provider.restoreAuth) {
+                swapped = await provider.restoreAuth(activeProfile);
+            }
+
+            if (swapped) {
+                // Native execution path only when local auth snapshot was restored
                 const result = await execa(cliName, args, {
                     stdio: 'inherit',
                     reject: false,
                 });
-                process.exit(result.exitCode ?? 0);
+                process.exitCode = result.exitCode ?? 0;
+                return;
+            }
+
+            if (provider.restoreAuth) {
+                logger.warn(
+                    `Unable to restore local auth snapshot for ${provider.name}/${activeProfile}. Falling back to token-based execution.`,
+                );
             }
 
             // Fallback: inject env var
-            const token = await getToken(validProvider, currentProfile);
+            const token = await getToken(validProvider, activeProfile);
 
             if (!token) {
-                logger.error(
-                    `No token found for ${provider.name}/${currentProfile}. Try adding it again with "orbit add".`,
+                fail(
+                    `No token found for ${provider.name}/${activeProfile}. Cannot verify identity; try "orbit add ${validProvider} ${activeProfile}" first.`,
                 );
-                process.exit(1);
+                return;
             }
+            const envToken = token;
 
             const envVar = provider.getEnvVar();
 
             const result = await execa(cliName, args, {
                 env: {
                     ...process.env,
-                    [envVar]: token,
+                    [envVar]: envToken,
                 },
                 stdio: 'inherit',
                 reject: false,
             });
 
-            process.exit(result.exitCode ?? 0);
+            process.exitCode = result.exitCode ?? 0;
         } catch (error: unknown) {
             handleError(error);
         }

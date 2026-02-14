@@ -11,6 +11,27 @@ export const listCommand = new Command('list')
             const config = loadConfig();
             const providers = Object.keys(config.providers);
 
+            if (logger.isJsonMode()) {
+                const payload = providers.map((providerName) => {
+                    const providerConfig = config.providers[providerName];
+                    return {
+                        provider: providerName,
+                        current: providerConfig?.current ?? null,
+                        profiles: (providerConfig?.profiles ?? []).map((profile) => ({
+                            name: profile,
+                            email: providerConfig?.metadata?.[profile]?.email ?? null,
+                            isCurrent: providerConfig?.current === profile,
+                        })),
+                    };
+                });
+
+                logger.json({
+                    ok: true,
+                    providers: payload,
+                });
+                return;
+            }
+
             if (providers.length === 0) {
                 logger.info('No profiles configured yet. Use "orbit add <provider> <profile>" to get started.');
                 return;

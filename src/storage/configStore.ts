@@ -2,29 +2,49 @@ import fs from 'node:fs';
 import { OrbitConfigSchema } from '../types/config.js';
 import type { OrbitConfig } from '../types/config.js';
 import { getConfigPath, ensureConfigDir } from '../utils/paths.js';
+import { atomicWriteFile, ensureFileMode, quarantineCorruptFile } from '../utils/fileOps.js';
+import { logger } from '../utils/logger.js';
 
 const defaultConfig: OrbitConfig = {
     providers: {},
+};
+
+const writeDefaultConfig = (configPath: string): OrbitConfig => {
+    ensureConfigDir();
+    atomicWriteFile(
+        configPath,
+        JSON.stringify(defaultConfig, null, 2),
+        0o600,
+    );
+    return { providers: {} };
 };
 
 export const loadConfig = (): OrbitConfig => {
     const configPath = getConfigPath();
 
     if (!fs.existsSync(configPath)) {
-        ensureConfigDir();
-        fs.writeFileSync(configPath, JSON.stringify(defaultConfig, null, 2), 'utf-8');
-        return { ...defaultConfig };
+        return writeDefaultConfig(configPath);
     }
 
-    const raw = fs.readFileSync(configPath, 'utf-8');
-    const parsed: unknown = JSON.parse(raw);
-    return OrbitConfigSchema.parse(parsed);
+    ensureFileMode(configPath, 0o600);
+
+    try {
+        const raw = fs.readFileSync(configPath, 'utf-8');
+        const parsed: unknown = JSON.parse(raw);
+        return OrbitConfigSchema.parse(parsed);
+    } catch (error: unknown) {
+        const quarantinePath = quarantineCorruptFile(configPath, `${Date.now()}`);
+        logger.warn(
+            `Detected invalid config. Backed it up to "${quarantinePath}" and re-initialized Orbit config.`,
+        );
+        return writeDefaultConfig(configPath);
+    }
 };
 
 export const saveConfig = (config: OrbitConfig): void => {
     ensureConfigDir();
     const configPath = getConfigPath();
-    fs.writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf-8');
+    atomicWriteFile(configPath, JSON.stringify(config, null, 2), 0o600);
 };
 
 export const addProfile = (
@@ -63,6 +83,13 @@ export const removeProfile = (provider: string, profile: string): void => {
 
     if (providerConfig.current === profile) {
         providerConfig.current = undefined;
+    }
+
+    if (providerConfig.metadata?.[profile]) {
+        delete providerConfig.metadata[profile];
+        if (Object.keys(providerConfig.metadata).length === 0) {
+            delete providerConfig.metadata;
+        }
     }
 
     if (providerConfig.profiles.length === 0) {

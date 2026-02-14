@@ -1,12 +1,14 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
-import os from 'node:os';
 import { getConfigDir, ensureConfigDir } from '../utils/paths.js';
+import { atomicWriteFile, ensureFileMode, quarantineCorruptFile } from '../utils/fileOps.js';
+import { logger } from '../utils/logger.js';
 
 const CREDENTIALS_FILE = 'credentials.json';
 const KEY_FILE = '.key';
 const ALGORITHM = 'aes-256-gcm';
+const ENCRYPTED_FILE_MODE = 0o600;
 
 interface EncryptedEntry {
     iv: string;
@@ -26,17 +28,30 @@ const getKeyPath = (): string => {
     return path.join(getConfigDir(), KEY_FILE);
 };
 
+const writeKey = (keyPath: string, key: Buffer): void => {
+    atomicWriteFile(keyPath, key.toString('hex'), ENCRYPTED_FILE_MODE);
+};
+
+const readKey = (keyPath: string): Buffer => {
+    ensureFileMode(keyPath, ENCRYPTED_FILE_MODE);
+    const raw = fs.readFileSync(keyPath, 'utf-8').trim();
+    if (!/^[0-9a-fA-F]{64}$/.test(raw)) {
+        throw new Error('Invalid encryption key format.');
+    }
+    return Buffer.from(raw, 'hex');
+};
+
 const getOrCreateKey = (): Buffer => {
     const keyPath = getKeyPath();
     ensureConfigDir();
 
     if (fs.existsSync(keyPath)) {
-        return Buffer.from(fs.readFileSync(keyPath, 'utf-8'), 'hex');
+        return readKey(keyPath);
     }
 
     // Generate a random 256-bit key
     const key = crypto.randomBytes(32);
-    fs.writeFileSync(keyPath, key.toString('hex'), { mode: 0o600 });
+    writeKey(keyPath, key);
     return key;
 };
 
@@ -68,9 +83,16 @@ const decrypt = (entry: EncryptedEntry, key: Buffer): string => {
 const loadStore = (): CredentialStore => {
     const filePath = getCredentialsPath();
     if (!fs.existsSync(filePath)) return {};
+
+    ensureFileMode(filePath, ENCRYPTED_FILE_MODE);
+
     try {
         return JSON.parse(fs.readFileSync(filePath, 'utf-8')) as CredentialStore;
     } catch {
+        const quarantinePath = quarantineCorruptFile(filePath, `${Date.now()}`);
+        logger.warn(
+            `Detected invalid credentials store. Backed it up to "${quarantinePath}" and re-initialized credentials.`,
+        );
         return {};
     }
 };
@@ -78,7 +100,7 @@ const loadStore = (): CredentialStore => {
 const saveStore = (store: CredentialStore): void => {
     ensureConfigDir();
     const filePath = getCredentialsPath();
-    fs.writeFileSync(filePath, JSON.stringify(store, null, 2), { mode: 0o600 });
+    atomicWriteFile(filePath, JSON.stringify(store, null, 2), ENCRYPTED_FILE_MODE);
 };
 
 const getKey = (provider: string, profile: string): string => {
@@ -121,4 +143,41 @@ export const deleteToken = async (
     delete store[k];
     saveStore(store);
     return true;
+};
+
+export const rotateEncryptionKey = async (): Promise<void> => {
+    const keyPath = getKeyPath();
+    const oldKey = getOrCreateKey();
+    const store = loadStore();
+    const decryptedEntries = new Map<string, string>();
+
+    for (const [entryKey, entryValue] of Object.entries(store)) {
+        decryptedEntries.set(entryKey, decrypt(entryValue, oldKey));
+    }
+
+    const newKey = crypto.randomBytes(32);
+    const rotatedStore: CredentialStore = {};
+    for (const [entryKey, token] of decryptedEntries.entries()) {
+        rotatedStore[entryKey] = encrypt(token, newKey);
+    }
+
+    const backupPath = `${keyPath}.bak-${Date.now()}`;
+    if (fs.existsSync(keyPath)) {
+        fs.copyFileSync(keyPath, backupPath);
+    }
+
+    try {
+        writeKey(keyPath, newKey);
+        saveStore(rotatedStore);
+    } catch (error: unknown) {
+        if (fs.existsSync(backupPath)) {
+            fs.copyFileSync(backupPath, keyPath);
+            ensureFileMode(keyPath, ENCRYPTED_FILE_MODE);
+        }
+        throw error;
+    } finally {
+        if (fs.existsSync(backupPath)) {
+            fs.rmSync(backupPath, { force: true });
+        }
+    }
 };

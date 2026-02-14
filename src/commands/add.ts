@@ -1,5 +1,4 @@
 import { Command } from 'commander';
-import ora from 'ora';
 import chalk from 'chalk';
 import readline from 'node:readline';
 import { getProvider } from '../providers/provider.interface.js';
@@ -8,6 +7,8 @@ import { addProfile, profileExists } from '../storage/configStore.js';
 import { validateProviderName, validateProfileName } from '../utils/validator.js';
 import { logger } from '../utils/logger.js';
 import { handleError } from '../utils/errorHandler.js';
+import { fail } from '../utils/cliError.js';
+import { createSpinner } from '../utils/spinner.js';
 
 const promptHiddenInput = (prompt: string): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -94,7 +95,7 @@ export const addCommand = new Command('add')
             let storedTokenFound = false;
 
             if (provider.getStoredToken) {
-                const spinner = ora(`Checking for existing ${provider.name} credentials...`).start();
+                const spinner = createSpinner(`Checking for existing ${provider.name} credentials...`);
                 try {
                     const storedToken = await provider.getStoredToken();
                     spinner.stop();
@@ -136,7 +137,7 @@ export const addCommand = new Command('add')
                     if (loginSuccess) {
                         // Re-check for token
                         if (provider.getStoredToken) {
-                            const spinner = ora('Checking for new credentials...').start();
+                            const spinner = createSpinner('Checking for new credentials...');
                             try {
                                 const storedToken = await provider.getStoredToken();
                                 spinner.stop();
@@ -159,16 +160,14 @@ export const addCommand = new Command('add')
             }
 
             if (!token.trim()) {
-                logger.error('Token cannot be empty.');
-                process.exit(1);
+                fail('Token cannot be empty.');
             }
 
-            const spinner = ora('Validating token...').start();
+            const spinner = createSpinner('Validating token...');
 
             if (!provider.validateToken(token.trim())) {
                 spinner.fail('Token validation failed.');
-                logger.error(`Invalid token format for ${provider.name}. Please check your token and try again.`);
-                process.exit(1);
+                fail(`Invalid token format for ${provider.name}. Please check your token and try again.`);
             }
 
             spinner.text = 'Storing token securely...';

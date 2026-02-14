@@ -3,6 +3,7 @@ import path from 'node:path';
 import os from 'node:os';
 import type { Provider } from './provider.interface.js';
 import { getAuthFilePath, ensureAuthDir } from '../utils/paths.js';
+import { ensureFileMode } from '../utils/fileOps.js';
 
 const getVercelAuthPath = (): string | null => {
     const platform = os.platform();
@@ -95,6 +96,7 @@ export const vercelProvider: Provider = {
         ensureAuthDir('vercel');
         const destPath = getAuthFilePath('vercel', profile);
         fs.copyFileSync(authPath, destPath);
+        ensureFileMode(destPath, 0o600);
     },
 
     async restoreAuth(profile: string): Promise<boolean> {
@@ -112,5 +114,12 @@ export const vercelProvider: Provider = {
 
         fs.copyFileSync(sourcePath, authPath);
         return true;
+    },
+
+    async removeAuthSnapshot(profile: string): Promise<void> {
+        const snapshotPath = getAuthFilePath('vercel', profile);
+        if (fs.existsSync(snapshotPath)) {
+            fs.rmSync(snapshotPath, { force: true });
+        }
     },
 };
