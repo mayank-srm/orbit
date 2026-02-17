@@ -1,6 +1,6 @@
 {
   "name": "@appuo/orbit",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "Switch Vercel identities instantly. Multi-account profile manager for Vercel CLI. No logout required.",
   "type": "module",
   "bin": {
