@@ -1,6 +1,8 @@
 ![Orbit](./assets/orbit-header.gif)
 
-**Switch Vercel identities instantly.**
+**Orbit by AppUo**
+
+Switch Vercel identities instantly.
 
 No logout. No shell hacks. No credential mess.
 
@@ -49,6 +51,42 @@ npm install -g @appuo/orbit
 # or
 pnpm add -g @appuo/orbit
 ```
+
+---
+
+## 🧾 Release & Changelog Flow
+
+Use this flow to keep `CHANGELOG.md` updated on every change/release:
+
+```bash
+# 1) Add an entry while working
+pnpm changelog:add -- --type changed --message "Improve profile auth rollback"
+
+# 2) Bump version for release
+npm version 1.0.9 --no-git-tag-version
+
+# 3) Move [Unreleased] notes into the new version + validate
+pnpm release:prepare
+
+# 4) Publish to GitHub Packages
+npm login --scope=@appuo --auth-type=legacy --registry=https://npm.pkg.github.com
+pnpm release:publish
+
+# One-command release (version bump + changelog + publish + commit/tag/push)
+pnpm release:ship
+# or explicit version:
+pnpm release:ship -- --version 1.0.9
+# run everything except git push:
+pnpm release:ship -- --no-push
+```
+
+Optional npmjs publish:
+
+```bash
+pnpm release:publish:npm
+```
+
+`pnpm changelog:release` will fail if `[Unreleased]` has no entries, to prevent empty release notes.
 
 ---
 

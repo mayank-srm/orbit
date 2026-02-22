@@ -34,6 +34,17 @@ pnpm dev         # Build with watch mode
 pnpm typecheck   # Run TypeScript type checking
 pnpm test        # Build + run integration/unit tests
 pnpm release:check   # Release readiness checks
+pnpm release:prepare # Move [Unreleased] notes to current package version + check
+pnpm release:publish # Publish to GitHub Packages
+pnpm release:ship    # Bump version + changelog + publish + commit/tag/push
+pnpm changelog:add -- --type changed --message "Describe the change"
+pnpm changelog:release
+```
+
+For local GitHub Packages publishing, authenticate first:
+
+```bash
+npm login --scope=@appuo --auth-type=legacy --registry=https://npm.pkg.github.com
 ```
 
 ### Code Standards

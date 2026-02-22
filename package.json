@@ -1,7 +1,11 @@
 {
   "name": "@appuo/orbit",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "description": "Switch Vercel identities instantly. Multi-account profile manager for Vercel CLI. No logout required.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/appuo/orbit.git"
+  },
   "type": "module",
   "bin": {
     "orbit": "dist/index.js"
@@ -20,9 +24,15 @@
     "test:run": "node --test --test-concurrency=1 tests/*.test.mjs",
     "test": "pnpm build && pnpm build:test && pnpm test:run",
     "test:coverage": "node --test --experimental-test-coverage --test-concurrency=1 tests/*.test.mjs",
+    "changelog:add": "node scripts/changelog.mjs add",
+    "changelog:release": "node scripts/changelog.mjs release",
+    "release:prepare": "pnpm changelog:release && pnpm release:check",
     "verify:release": "node scripts/check-release.mjs",
     "smoke:package": "node scripts/smoke-package.mjs",
     "release:check": "pnpm typecheck && pnpm test && pnpm verify:release && pnpm smoke:package && npm --cache ./.npm-cache pack --dry-run",
+    "release:publish": "pnpm release:check && npm --cache ./.npm-cache publish --registry=https://npm.pkg.github.com",
+    "release:publish:npm": "pnpm release:check && npm --cache ./.npm-cache --@appuo:registry=https://registry.npmjs.org publish --access public --registry=https://registry.npmjs.org && npm --cache ./.npm-cache --@appuo:registry=https://registry.npmjs.org dist-tag add @appuo/orbit@$npm_package_version latest --registry=https://registry.npmjs.org",
+    "release:ship": "node scripts/release.mjs",
     "prepublishOnly": "pnpm build"
   },
   "keywords": [

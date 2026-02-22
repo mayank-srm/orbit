@@ -16,6 +16,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 
+## [1.0.10] - 2026-02-22
+
+### Added
+
+- Add single-command release ship flow with target selection (npm/github).
+
+### Changed
+
+- Re-enable release/changelog scripts and npm publish automation in package scripts.
+
 ## [1.0.9] - 2026-02-22
 
 ### Changed
