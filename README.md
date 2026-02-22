@@ -6,7 +6,7 @@ Switch Vercel identities instantly.
 
 No logout. No shell hacks. No credential mess.
 
-[![npm](https://img.shields.io/npm/v/@appuo/orbit)](https://www.npmjs.com/package/@appuo/orbit)
+[![npm](https://img.shields.io/npm/v/%40appuo%2Forbit)](https://www.npmjs.com/package/@appuo/orbit)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](https://nodejs.org)
 
