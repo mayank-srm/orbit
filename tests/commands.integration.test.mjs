@@ -31,8 +31,19 @@ if (fs.existsSync(authPath)) {
   } catch {}
 }
 
-const resolvedToken = process.env.VERCEL_TOKEN || authToken || '';
+const tokenArgIndex = process.argv.indexOf('--token');
+const tokenFromArg = tokenArgIndex >= 0 ? (process.argv[tokenArgIndex + 1] || '') : '';
+const resolvedToken = tokenFromArg || process.env.VERCEL_TOKEN || authToken || '';
+const isInvalidToken = resolvedToken.toLowerCase().includes('invalid');
 if (process.argv.includes('whoami')) {
+  if (!resolvedToken) {
+    process.stderr.write('No existing credentials found. Please log in.\\n');
+    process.exit(1);
+  }
+  if (isInvalidToken) {
+    process.stderr.write('Error: The specified token is not valid.\\n');
+    process.exit(1);
+  }
   process.stdout.write(resolvedToken + '\\n');
   process.exit(0);
 }
@@ -114,6 +125,13 @@ const runOrbit = (sandbox, args, input = '') => {
     });
 };
 
+const runVercel = (sandbox, args) => {
+    return spawnSync('vercel', args, {
+        env: sandbox.env,
+        encoding: 'utf-8',
+    });
+};
+
 const getLastLine = (output) => {
     return output
         .split(/\r?\n/)
@@ -162,6 +180,38 @@ test('orbit exec falls back to token when auth snapshot restore fails', async (t
 
     assert.equal(result.status, 0, `stderr:\n${result.stderr}`);
     assert.equal(getLastLine(result.stdout), token);
+});
+
+test('orbit use rolls back when restored auth is invalid', async (t) => {
+    const sandbox = createSandbox();
+    t.after(() => {
+        fs.rmSync(sandbox.rootDir, { recursive: true, force: true });
+    });
+    applySandbox(sandbox);
+
+    const personalToken = 'token_personal_abcdefghijklmnopqrstuvwxyz';
+    const invalidCompanyToken = 'invalid_company_abcdefghijklmnopqrstuvwxyz';
+
+    addProfile('vercel', 'personal');
+    addProfile('vercel', 'company');
+    setCurrentProfile('vercel', 'personal');
+    await storeToken('vercel', 'personal', personalToken);
+    await storeToken('vercel', 'company', invalidCompanyToken);
+
+    writeSnapshot('personal', personalToken);
+    writeSnapshot('company', invalidCompanyToken);
+    writeRuntimeAuth(sandbox, personalToken);
+
+    const result = runOrbit(sandbox, ['use', 'vercel', 'company']);
+
+    assert.notEqual(result.status, 0, `stderr:\n${result.stderr}`);
+    assert.match(result.stderr, /invalid or expired/i);
+    const config = loadConfig();
+    assert.equal(config.providers.vercel?.current, 'personal');
+
+    const whoamiResult = runVercel(sandbox, ['whoami']);
+    assert.equal(whoamiResult.status, 0, `stderr:\n${whoamiResult.stderr}`);
+    assert.equal(getLastLine(whoamiResult.stdout), personalToken);
 });
 
 test('orbit remove deletes snapshot and clears removed profile metadata', async (t) => {

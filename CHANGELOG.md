@@ -9,6 +9,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+
+### Changed
+
+
+### Fixed
+
+
+## [1.0.9] - 2026-02-22
+
+### Changed
+
+- `orbit use` now validates target Vercel auth before marking a profile as current.
+- `orbit use` now attempts token-based auth recovery and rolls back to the previous profile on failure.
+- Vercel auth path now honors `XDG_DATA_HOME` override on all platforms for isolated/sandboxed environments.
+
+### Fixed
+
+- Prevented profile/auth drift where `orbit use` reported success but `vercel whoami` resolved to a different account.
+- Added integration coverage for invalid-token restore rollback behavior.
+
 ## [1.0.8] - 2026-02-17
 
 ### Added

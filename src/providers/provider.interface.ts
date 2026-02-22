@@ -9,6 +9,8 @@ export interface Provider {
     getAuthConfigPath?(): string | null;
     captureAuth?(profile: string): Promise<void>;
     restoreAuth?(profile: string): Promise<boolean>;
+    seedAuthFromToken?(token: string): Promise<boolean>;
+    validateActiveAuth?(): Promise<boolean>;
     removeAuthSnapshot?(profile: string): Promise<void>;
 }
 

@@ -1,6 +1,7 @@
 import { Command } from 'commander';
 import { getProvider } from '../providers/provider.interface.js';
 import { setCurrentProfile, profileExists, getCurrentProfile } from '../storage/configStore.js';
+import { getToken } from '../storage/keychain.js';
 import { validateProviderName, validateProfileName } from '../utils/validator.js';
 import { handleError } from '../utils/errorHandler.js';
 import { fail } from '../utils/cliError.js';
@@ -34,14 +35,57 @@ export const useCommand = new Command('use')
                 }
 
                 // Restore target profile's auth state
-                if (provider.restoreAuth) {
-                    const restored = await provider.restoreAuth(validProfile);
-                    if (!restored) {
+                if (provider.restoreAuth && currentProfile !== validProfile) {
+                    const restoredSnapshot = await provider.restoreAuth(validProfile);
+                    if (!restoredSnapshot) {
                         fail(
                             `No saved auth snapshot found for ${provider.name}/${validProfile}. Re-add the profile with "orbit add ${validProvider} ${validProfile}" to capture credentials.`,
                         );
                     }
                     spinner.text = 'Auth credentials restored...';
+                }
+
+                const authValid = provider.validateActiveAuth
+                    ? await provider.validateActiveAuth()
+                    : true;
+
+                if (!authValid) {
+                    let recovered = false;
+
+                    if (provider.seedAuthFromToken) {
+                        const savedToken = await getToken(validProvider, validProfile);
+                        if (savedToken && provider.validateToken(savedToken)) {
+                            spinner.text = 'Refreshing auth from saved token...';
+                            const seeded = await provider.seedAuthFromToken(savedToken);
+                            if (seeded) {
+                                recovered = provider.validateActiveAuth
+                                    ? await provider.validateActiveAuth()
+                                    : true;
+                            }
+                        }
+                    }
+
+                    if (!recovered) {
+                        // Roll back auth state to previous profile when possible.
+                        if (currentProfile && currentProfile !== validProfile && provider.restoreAuth) {
+                            try {
+                                await provider.restoreAuth(currentProfile);
+                            } catch {
+                                // Non-critical rollback failure.
+                            }
+                        }
+                        fail(
+                            `Credentials for ${provider.name}/${validProfile} are invalid or expired. Re-authenticate with "${provider.getCliName()} login", then refresh Orbit with "orbit add ${validProvider} ${validProfile}".`,
+                        );
+                    }
+                }
+
+                if (provider.captureAuth) {
+                    try {
+                        await provider.captureAuth(validProfile);
+                    } catch {
+                        // Non-critical
+                    }
                 }
 
                 setCurrentProfile(validProvider, validProfile);
